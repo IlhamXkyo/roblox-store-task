@@ -26,7 +26,7 @@ function rata_bintang($conn, $id_produk) {
 }
 
 /**
- * Total terjual suatu produk (status selesai)
+ * Totalterjual suatu produk (status selesai)
  */
 function total_terjual($conn, $id_produk) {
     $sql = "SELECT SUM(jumlah) as total FROM pesanan WHERE id_produk = $id_produk AND status = 'selesai'";
