@@ -1,76 +1,65 @@
-# 🎮 Roblox Store  
-### Sistem Informasi E-Commerce Item Roblox Berbasis Web
+# Roblox Store
 
-![PHP](https://img.shields.io/badge/PHP-7.4+-777BB4?style=for-the-badge&logo=php&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-5.7+-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+Aplikasi web toko e-commerce berbasis PHP Native dan MySQL untuk transaksi item virtual game Roblox.
 
-> **📌 Project Ujian Akhir Semester (UAS) – Pemrograman Web**  
-> Tema: *Rancang Bangun Sistem Informasi Roblox Item Store (B2C) Berbasis Web*
+Proyek ini dibangun tanpa framework eksternal untuk mendemonstrasikan implementasi autentikasi peran ganda, manajemen inventaris item, dan alur pemrosesan pesanan berbasis session.
 
----
+## Fitur
 
-## 📖 Tentang Project
+### Pengguna (Pembeli)
+- Registrasi akun, verifikasi login, dan manajemen profil.
+- Eksplorasi katalog item dengan filter kategori dan pencarian nama.
+- Detail produk dengan ulasan bintang dan riwayat jumlah item terjual.
+- Keranjang belanja berbasis session PHP.
+- Formulir checkout transaksi dan riwayat pelacakan status pesanan (Dikemas, Diproses, Dikirim, Selesai).
+- Tombol konfirmasi penerimaan barang untuk menyelesaikan transaksi.
 
-**Roblox Store** adalah aplikasi web *e-commerce* yang dirancang khusus untuk menjual item-item dalam game **Roblox**. Dibangun dengan **PHP Native** dan **MySQL** tanpa framework, project ini mengusung tema *cartoonish/gaming style* dengan warna cerah khas Roblox.
+### Administrator
+- Dashboard ringkasan metrik penjualan, total pendapatan, dan jumlah pesanan baru.
+- Manajemen produk: tambah produk, edit detail harga, kelola stok, dan unggah gambar aset.
+- Manajemen kategori item.
+- Pembaruan status pesanan pelanggan dan monitoring daftar akun pengguna.
 
-Sistem mendukung **2 role pengguna**:
-- 🛡️ **Admin** – Mengelola kategori, produk, pelanggan, dan status pesanan.
-- 🎮 **Buyer** – Membeli item, mengelola keranjang, melacak pesanan, dan memberi ulasan.
+## Kebutuhan Sistem
 
----
+- Web Server: Apache (misal melalui XAMPP atau Laragon)
+- PHP versi 7.4 atau lebih baru
+- Database: MySQL atau MariaDB 5.7+
 
-## ✨ Fitur Unggulan
+## Panduan Instalasi
 
-### 👤 Untuk User (Buyer)
-- ✅ Registrasi & Login akun
-- ✅ Katalog produk dengan tampilan gaming
-- ✅ Statistik produk: **Total Terjual** & **Rata-rata Bintang** ⭐
-- ✅ Keranjang belanja berbasis session
-- ✅ Proses checkout dengan konfirmasi
-- ✅ Tracking status pesanan:  
-  `📦 Dikemas` → `⚙️ Diproses` → `🚚 Dikirim` → `✅ Selesai`
-- ✅ Tombol **"Barang Diterima"** untuk menyelesaikan pesanan
-- ✅ Form ulasan produk (bintang 1-5, komentar, upload foto)
-- ✅ Sensor otomatis nama pengguna pada ulasan (contoh: `BudiSantoso` → `Bud******so`)
-
-### 🛡️ Untuk Admin
-- ✅ Dashboard statistik real-time
-- ✅ **CRUD Kategori** (Tambah, Edit, Hapus)
-- ✅ **CRUD Produk** (Tambah, Edit, Hapus) + Upload gambar
-- ✅ Manajemen pelanggan (Lihat & Hapus akun buyer)
-- ✅ Kelola status pesanan (`Dikemas` → `Diproses` → `Dikirim`)
-
----
-
-## 🛠️ Teknologi yang Digunakan
-
-| Komponen | Teknologi |
-| :--- | :--- |
-| **Frontend** | HTML5, CSS3, Bootstrap 5 (CDN), JavaScript Native |
-| **Backend** | PHP Native (tanpa framework) |
-| **Database** | MySQL (5 tabel terintegrasi) |
-| **Web Server** | XAMPP / Apache / Laragon |
-| **Library Tambahan** | SweetAlert2 (opsional), Google Fonts (Fredoka) |
-
----
-
-## 🗄️ Struktur Database
-
-| Tabel | Keterangan |
-| :--- | :--- |
-| `users` | Data akun pengguna (admin & buyer) |
-| `kategori` | Kategori produk Roblox |
-| `produk` | Data item (nama, harga, stok, gambar, deskripsi) |
-| `pesanan` | Riwayat transaksi pembelian |
-| `penilaian` | Ulasan dan rating dari pembeli |
-
----
-
-## 🚀 Cara Instalasi & Menjalankan
-
-1. **Clone / Download** repository ini ke folder `htdocs` (XAMPP) atau `www` (Laragon).  
+1. Salin atau clone repositori ini ke folder root web server lokal kamu:
    ```bash
-   git clone https://github.com/username/roblox-store.git
+   # Contoh pada direktori XAMPP di Windows:
+   cd C:/xampp/htdocs
+   git clone https://github.com/IlhamXkyo/roblox-store-task.git
+   ```
+
+2. Buat database baru di MySQL dengan nama `roblox_store`.
+
+3. Impor skema database dari berkas SQL yang tersedia:
+   ```bash
+   mysql -u root -p roblox_store < database.sql
+   ```
+
+4. Konfigurasi kredensial database pada berkas koneksi (misal `config/database.php` atau `koneksi.php`):
+   ```php
+   $host = "localhost";
+   $user = "root";
+   $pass = "";
+   $db   = "roblox_store";
+   ```
+
+5. Buka browser dan akses alamat:
+   ```text
+   http://localhost/roblox-store-task
+   ```
+
+## Akun Demo Bawaan
+
+- **Admin**: Username `admin`, Password `admin123`
+- **Buyer**: Username `buyer`, Password `buyer123`
+
+## Lisensi
+
+Didistribusikan di bawah lisensi MIT.
