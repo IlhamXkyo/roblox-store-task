@@ -52,11 +52,11 @@ $kategori = $conn->query($sql);
                     <tbody>
                         <?php while ($row = $kategori->fetch_assoc()): ?>
                         <tr>
-                            <td><?= $row['id_kategori'] ?></td>
-                            <td><?= $row['nama_kategori'] ?></td>
+                            <td><?= (int)$row['id_kategori'] ?></td>
+                            <td><?= escape($row['nama_kategori']) ?></td>
                             <td>
-                                <a href="kategori_edit.php?id=<?= $row['id_kategori'] ?>" class="btn btn-warning btn-sm">Edit</a>
-                                <a href="kategori_hapus.php?id=<?= $row['id_kategori'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus?')">Hapus</a>
+                                <a href="kategori_edit.php?id=<?= (int)$row['id_kategori'] ?>" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="kategori_hapus.php?id=<?= (int)$row['id_kategori'] ?>&csrf_token=<?= generate_csrf_token() ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus?')">Hapus</a>
                             </td>
                         </tr>
                         <?php endwhile; ?>

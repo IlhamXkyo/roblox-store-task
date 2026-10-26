@@ -4,7 +4,7 @@ require_once 'koneksi.php';
 require_once 'functions.php';
 cek_admin();
 
-$sql = "SELECT * FROM users WHERE role = 'buyer' ORDER BY id_user DESC";
+$sql = "SELECT id_user, username, nama_lengkap FROM users WHERE role = 'buyer' ORDER BY id_user DESC";
 $user = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -45,11 +45,11 @@ $user = $conn->query($sql);
                     <tbody>
                         <?php while ($row = $user->fetch_assoc()): ?>
                         <tr>
-                            <td><?= $row['id_user'] ?></td>
-                            <td><?= $row['username'] ?></td>
-                            <td><?= $row['nama_lengkap'] ?></td>
+                            <td><?= (int)$row['id_user'] ?></td>
+                            <td><?= escape($row['username']) ?></td>
+                            <td><?= escape($row['nama_lengkap']) ?></td>
                             <td>
-                                <a href="pelanggan_hapus.php?id=<?= $row['id_user'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus pelanggan ini? Semua pesanannya juga akan terhapus.')">Hapus</a>
+                                <a href="pelanggan_hapus.php?id=<?= (int)$row['id_user'] ?>&csrf_token=<?= generate_csrf_token() ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus pelanggan ini? Semua pesanannya juga akan terhapus.')">Hapus</a>
                             </td>
                         </tr>
                         <?php endwhile; ?>

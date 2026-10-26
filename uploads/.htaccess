@@ -1,0 +1,16 @@
+# Melarang eksekusi skrip PHP di folder uploads
+<FilesMatch "(?i)\.(php|phtml|php3|php4|php5|php7|phps|pht|phar|inc)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps .pht .phar .inc
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phps .pht .phar .inc
+
+Options -Indexes -ExecCGI

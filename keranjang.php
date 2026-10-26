@@ -4,34 +4,34 @@ require_once 'koneksi.php';
 require_once 'functions.php';
 cek_login();
 
-// Inisialisasi keranjang jika belum ada
 if (!isset($_SESSION['keranjang'])) {
     $_SESSION['keranjang'] = [];
 }
 
-// Tambah item ke keranjang
 if (isset($_GET['tambah'])) {
-    $id = intval($_GET['tambah']);
-    if (isset($_SESSION['keranjang'][$id])) {
-        $_SESSION['keranjang'][$id]++;
-    } else {
-        $_SESSION['keranjang'][$id] = 1;
+    $id = (int)$_GET['tambah'];
+    if ($id > 0) {
+        if (isset($_SESSION['keranjang'][$id])) {
+            $_SESSION['keranjang'][$id]++;
+        } else {
+            $_SESSION['keranjang'][$id] = 1;
+        }
     }
     header("Location: keranjang.php");
     exit;
 }
 
-// Hapus item dari keranjang
 if (isset($_GET['hapus'])) {
-    $id = intval($_GET['hapus']);
+    $id = (int)$_GET['hapus'];
     unset($_SESSION['keranjang'][$id]);
     header("Location: keranjang.php");
     exit;
 }
 
-// Update jumlah
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'], $_POST['qty']) && is_array($_POST['qty'])) {
     foreach ($_POST['qty'] as $id => $qty) {
+        $id = (int)$id;
+        $qty = (int)$qty;
         if ($qty <= 0) {
             unset($_SESSION['keranjang'][$id]);
         } else {
@@ -42,24 +42,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
     exit;
 }
 
-// Ambil data produk dari keranjang
 $items = [];
 $grand_total = 0;
 if (!empty($_SESSION['keranjang'])) {
-    $ids = array_keys($_SESSION['keranjang']);
-    $ids_str = implode(',', $ids);
-    $sql = "SELECT * FROM produk WHERE id_produk IN ($ids_str)";
-    $result = $conn->query($sql);
-    while ($row = $result->fetch_assoc()) {
-        $id = $row['id_produk'];
-        $qty = $_SESSION['keranjang'][$id];
-        $subtotal = $row['harga'] * $qty;
-        $grand_total += $subtotal;
-        $items[] = [
-            'produk' => $row,
-            'qty' => $qty,
-            'subtotal' => $subtotal
-        ];
+    $ids = array_map('intval', array_keys($_SESSION['keranjang']));
+    $ids = array_filter($ids, fn($val) => $val > 0);
+    if (!empty($ids)) {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $types = str_repeat('i', count($ids));
+        $stmt = $conn->prepare("SELECT * FROM produk WHERE id_produk IN ($placeholders)");
+        if ($stmt) {
+            $stmt->bind_param($types, ...$ids);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            while ($row = $result->fetch_assoc()) {
+                $id = (int)$row['id_produk'];
+                $qty = (int)($_SESSION['keranjang'][$id] ?? 0);
+                $subtotal = $row['harga'] * $qty;
+                $grand_total += $subtotal;
+                $items[] = [
+                    'produk' => $row,
+                    'qty' => $qty,
+                    'subtotal' => $subtotal
+                ];
+            }
+        }
     }
 }
 ?>
@@ -105,38 +112,47 @@ if (!empty($_SESSION['keranjang'])) {
         <?php else: ?>
             <form method="POST">
                 <div class="card card-keranjang p-3">
-                    <?php foreach ($items as $item): ?>
+                    <?php foreach ($items as $item): 
+                        $raw_img = basename($item['produk']['gambar'] ?? '');
+                        $img_path = (!empty($raw_img) && file_exists('uploads/produk/' . $raw_img)) ? 'uploads/produk/' . $raw_img : 'assets/img/roblox_logo.png';
+                    ?>
                         <div class="row align-items-center border-bottom py-3">
                             <div class="col-md-2">
-                                <img src="<?= (file_exists('uploads/produk/'.$item['produk']['gambar'])) ? 'uploads/produk/'.$item['produk']['gambar'] : 'assets/img/roblox_logo.png' ?>" 
-                                     class="img-fluid rounded" style="max-height:80px;">
+                                <img src="<?= htmlspecialchars($img_path, ENT_QUOTES, 'UTF-8') ?>" 
+                                     class="img-fluid rounded" style="max-height:80px;" alt="Produk">
                             </div>
                             <div class="col-md-4">
-                                <h6 class="fw-bold"><?= $item['produk']['nama_produk'] ?></h6>
+                                <h6 class="fw-bold"><?= htmlspecialchars($item['produk']['nama_produk'], ENT_QUOTES, 'UTF-8') ?></h6>
                                 <span>Rp <?= number_format($item['produk']['harga'],0,',','.') ?></span>
                             </div>
                             <div class="col-md-2">
-                                <input type="number" name="qty[<?= $item['produk']['id_produk'] ?>]" value="<?= $item['qty'] ?>" min="1" class="form-control" style="width:80px;">
+                                <input type="number" name="qty[<?= (int)$item['produk']['id_produk'] ?>]" value="<?= (int)$item['qty'] ?>" min="1" class="form-control" style="width:80px;">
                             </div>
                             <div class="col-md-2">
                                 <strong>Rp <?= number_format($item['subtotal'],0,',','.') ?></strong>
                             </div>
                             <div class="col-md-2">
-                                <a href="keranjang.php?hapus=<?= $item['produk']['id_produk'] ?>" class="btn btn-hapus btn-sm">Hapus</a>
+                                <a href="keranjang.php?hapus=<?= (int)$item['produk']['id_produk'] ?>" class="btn btn-hapus btn-sm">Hapus</a>
                             </div>
                         </div>
                     <?php endforeach; ?>
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <button type="submit" name="update" class="btn btn-warning">Update Keranjang</button>
+                            <button type="submit" name="update" value="1" class="btn btn-warning">Update Keranjang</button>
                         </div>
                         <div class="col-md-6 text-end">
-                            <h5>Total: <span class="text-danger">Rp <?= number_format($grand_total,0,',','.') ?></span></h5>
-                            <a href="proses_beli.php?checkout=1" class="btn btn-checkout">Checkout Sekarang</a>
+                            <h5 class="mb-3">Total: <span class="text-danger">Rp <?= number_format($grand_total,0,',','.') ?></span></h5>
                         </div>
                     </div>
                 </div>
             </form>
+            <div class="text-end mt-3">
+                <form action="proses_beli.php" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
+                    <input type="hidden" name="checkout" value="1">
+                    <button type="submit" class="btn btn-checkout">Checkout Sekarang</button>
+                </form>
+            </div>
         <?php endif; ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

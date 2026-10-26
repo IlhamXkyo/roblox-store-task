@@ -1,0 +1,36 @@
+name: CI Automated Test Suite
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Run Automated Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.0', '8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mysqli, pdo_sqlite, sqlite3, mbstring
+          coverage: none
+
+      - name: Verify PHP Version & Extensions
+        run: |
+          php -v
+          php -m
+
+      - name: Run Roblox Store Test Suite
+        run: |
+          php tests/test_store_logic.php

@@ -4,13 +4,22 @@ require_once 'koneksi.php';
 require_once 'functions.php';
 cek_admin();
 
-// Proses update status
-if (isset($_GET['ubah_status']) && isset($_GET['id'])) {
-    $id_pesanan = intval($_GET['id']);
+if (isset($_GET['ubah_status'], $_GET['id'])) {
+    $token = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die("Validasi token CSRF gagal.");
+    }
+
+    $id_pesanan = (int)$_GET['id'];
     $status_baru = $_GET['ubah_status'];
-    $allowed = ['dikemas','diproses','dikirim'];
-    if (in_array($status_baru, $allowed)) {
-        $conn->query("UPDATE pesanan SET status = '$status_baru' WHERE id_pesanan = $id_pesanan");
+    $allowed = ['dikemas', 'diproses', 'dikirim'];
+
+    if (in_array($status_baru, $allowed, true)) {
+        $stmt = $conn->prepare("UPDATE pesanan SET status = ? WHERE id_pesanan = ?");
+        if ($stmt) {
+            $stmt->bind_param("si", $status_baru, $id_pesanan);
+            $stmt->execute();
+        }
     }
     header("Location: admin_pesanan.php");
     exit;
@@ -64,17 +73,17 @@ $pesanan = $conn->query($sql);
                     <tbody>
                         <?php while ($row = $pesanan->fetch_assoc()): ?>
                         <tr>
-                            <td><?= $row['id_pesanan'] ?></td>
-                            <td><?= $row['nama_lengkap'] ?></td>
-                            <td><?= $row['nama_produk'] ?></td>
-                            <td><?= $row['jumlah'] ?></td>
-                            <td>Rp <?= number_format($row['total_harga'],0,',','.') ?></td>
-                            <td><span class="badge bg-<?= match($row['status']) {'dikemas'=>'secondary','diproses'=>'primary','dikirim'=>'warning text-dark','selesai'=>'success'} ?>"><?= strtoupper($row['status']) ?></span></td>
+                            <td><?= (int)$row['id_pesanan'] ?></td>
+                            <td><?= escape($row['nama_lengkap']) ?></td>
+                            <td><?= escape($row['nama_produk']) ?></td>
+                            <td><?= (int)$row['jumlah'] ?></td>
+                            <td>Rp <?= number_format((float)$row['total_harga'], 0, ',', '.') ?></td>
+                            <td><span class="badge bg-<?= match($row['status']) {'dikemas'=>'secondary','diproses'=>'primary','dikirim'=>'warning text-dark','selesai'=>'success',default=>'secondary'} ?>"><?= escape(strtoupper($row['status'])) ?></span></td>
                             <td>
                                 <?php if ($row['status'] == 'dikemas'): ?>
-                                    <a href="admin_pesanan.php?ubah_status=diproses&id=<?= $row['id_pesanan'] ?>" class="btn btn-primary btn-status">Proses</a>
+                                    <a href="admin_pesanan.php?ubah_status=diproses&id=<?= (int)$row['id_pesanan'] ?>&csrf_token=<?= generate_csrf_token() ?>" class="btn btn-primary btn-status">Proses</a>
                                 <?php elseif ($row['status'] == 'diproses'): ?>
-                                    <a href="admin_pesanan.php?ubah_status=dikirim&id=<?= $row['id_pesanan'] ?>" class="btn btn-warning btn-status">Kirim</a>
+                                    <a href="admin_pesanan.php?ubah_status=dikirim&id=<?= (int)$row['id_pesanan'] ?>&csrf_token=<?= generate_csrf_token() ?>" class="btn btn-warning btn-status">Kirim</a>
                                 <?php elseif ($row['status'] == 'dikirim'): ?>
                                     <span class="text-muted">Menunggu konfirmasi user</span>
                                 <?php else: ?>

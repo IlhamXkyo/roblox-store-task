@@ -48,18 +48,19 @@ $produk = $conn->query($sql);
                     </thead>
                     <tbody>
                         <?php while ($row = $produk->fetch_assoc()): 
-                            $gambar = (file_exists('uploads/produk/'.$row['gambar'])) ? 'uploads/produk/'.$row['gambar'] : 'assets/img/roblox_logo.png';
+                            $raw_gambar = basename($row['gambar'] ?? '');
+                            $gambar = (!empty($raw_gambar) && file_exists('uploads/produk/' . $raw_gambar)) ? 'uploads/produk/' . $raw_gambar : 'assets/img/roblox_logo.png';
                         ?>
                         <tr>
-                            <td><?= $row['id_produk'] ?></td>
-                            <td><img src="<?= $gambar ?>" class="img-thumb-produk"></td>
-                            <td><?= $row['nama_produk'] ?></td>
-                            <td><?= $row['nama_kategori'] ?></td>
-                            <td>Rp <?= number_format($row['harga'],0,',','.') ?></td>
-                            <td><?= $row['stok'] ?></td>
+                            <td><?= (int)$row['id_produk'] ?></td>
+                            <td><img src="<?= escape($gambar) ?>" class="img-thumb-produk" alt="Thumbnail"></td>
+                            <td><?= escape($row['nama_produk']) ?></td>
+                            <td><?= escape($row['nama_kategori'] ?? '') ?></td>
+                            <td>Rp <?= number_format((float)$row['harga'], 0, ',', '.') ?></td>
+                            <td><?= (int)$row['stok'] ?></td>
                             <td>
-                                <a href="produk_edit.php?id=<?= $row['id_produk'] ?>" class="btn btn-warning btn-sm">Edit</a>
-                                <a href="produk_hapus.php?id=<?= $row['id_produk'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus?')">Hapus</a>
+                                <a href="produk_edit.php?id=<?= (int)$row['id_produk'] ?>" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="produk_hapus.php?id=<?= (int)$row['id_produk'] ?>&csrf_token=<?= generate_csrf_token() ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin hapus?')">Hapus</a>
                             </td>
                         </tr>
                         <?php endwhile; ?>

@@ -4,49 +4,88 @@ require_once 'koneksi.php';
 require_once 'functions.php';
 cek_admin();
 
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$data = $conn->query("SELECT * FROM produk WHERE id_produk = $id")->fetch_assoc();
-if (!$data) { header("Location: admin_produk.php"); exit; }
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$stmt_data = $conn->prepare("SELECT * FROM produk WHERE id_produk = ?");
+$stmt_data->bind_param("i", $id);
+$stmt_data->execute();
+$data = $stmt_data->get_result()->fetch_assoc();
 
-$kategori = $conn->query("SELECT * FROM kategori");
+if (!$data) {
+    header("Location: admin_produk.php");
+    exit;
+}
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $id_kategori = intval($_POST['id_kategori']);
-    $nama_produk = trim($_POST['nama_produk']);
-    $harga = intval($_POST['harga']);
-    $stok = intval($_POST['stok']);
-    $deskripsi = trim($_POST['deskripsi']);
-    $gambar = $data['gambar']; // default tetap
+$kategori = $conn->query("SELECT id_kategori, nama_kategori FROM kategori ORDER BY nama_kategori ASC");
 
-    // Upload gambar baru jika ada
-    if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] == 0) {
-        $target_dir = "uploads/produk/";
-        if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-        $ext = pathinfo($_FILES['gambar']['name'], PATHINFO_EXTENSION);
-        $nama_file = time() . "_" . rand(1000,9999) . "." . $ext;
-        $target_file = $target_dir . $nama_file;
-        if (move_uploaded_file($_FILES['gambar']['tmp_name'], $target_file)) {
-            // Hapus gambar lama jika bukan default
-            if ($data['gambar'] != 'roblox_logo.png' && file_exists("uploads/produk/".$data['gambar'])) {
-                unlink("uploads/produk/".$data['gambar']);
-            }
-            $gambar = $nama_file;
-        }
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die("Validasi token CSRF gagal.");
     }
 
-    $sql = "UPDATE produk SET 
-            id_kategori = $id_kategori,
-            nama_produk = '$nama_produk',
-            harga = $harga,
-            stok = $stok,
-            gambar = '$gambar',
-            deskripsi = '$deskripsi'
-            WHERE id_produk = $id";
-    if ($conn->query($sql)) {
-        header("Location: admin_produk.php");
-        exit;
+    $id_kategori = (int)($_POST['id_kategori'] ?? 0);
+    $nama_produk = trim($_POST['nama_produk'] ?? '');
+    $harga = (int)($_POST['harga'] ?? 0);
+    $stok = (int)($_POST['stok'] ?? 0);
+    $deskripsi = trim($_POST['deskripsi'] ?? '');
+    $gambar = $data['gambar'];
+
+    if ($id_kategori <= 0 || $nama_produk === '' || $harga < 0 || $stok < 0) {
+        $error = "Data produk tidak lengkap atau tidak valid.";
     } else {
-        echo "Gagal update: " . $conn->error;
+        if (isset($_FILES['gambar']) && $_FILES['gambar']['error'] === UPLOAD_ERR_OK) {
+            $allowed_ext = ['jpg', 'jpeg', 'png', 'webp'];
+            $allowed_mime = [
+                'jpg'  => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png'  => 'image/png',
+                'webp' => 'image/webp'
+            ];
+
+            $file_tmp = $_FILES['gambar']['tmp_name'];
+            $file_name = $_FILES['gambar']['name'];
+            $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file_tmp);
+            finfo_close($finfo);
+
+            if (!in_array($ext, $allowed_ext, true) || !isset($allowed_mime[$ext]) || $mime !== $allowed_mime[$ext]) {
+                $error = "Format berkas tidak diizinkan. Gunakan JPG, JPEG, PNG, atau WEBP yang valid.";
+            } else {
+                $target_dir = __DIR__ . '/uploads/produk/';
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0755, true);
+                }
+                $nama_file = time() . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+                $target_file = $target_dir . $nama_file;
+
+                if (move_uploaded_file($file_tmp, $target_file)) {
+                    if (!empty($data['gambar']) && $data['gambar'] !== 'roblox_logo.png') {
+                        $old_file = $target_dir . basename($data['gambar']);
+                        if (file_exists($old_file)) {
+                            unlink($old_file);
+                        }
+                    }
+                    $gambar = $nama_file;
+                } else {
+                    $error = "Gagal mengunggah gambar baru.";
+                }
+            }
+        }
+
+        if (empty($error)) {
+            $stmt_update = $conn->prepare("UPDATE produk SET id_kategori = ?, nama_produk = ?, harga = ?, stok = ?, gambar = ?, deskripsi = ? WHERE id_produk = ?");
+            if ($stmt_update) {
+                $stmt_update->bind_param("isiissi", $id_kategori, $nama_produk, $harga, $stok, $gambar, $deskripsi, $id);
+                if ($stmt_update->execute()) {
+                    header("Location: admin_produk.php");
+                    exit;
+                }
+            }
+            $error = "Gagal memperbarui data produk.";
+        }
     }
 }
 ?>
@@ -67,37 +106,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="container">
         <div class="card-form">
             <h3 class="fw-bold text-center">Edit Produk</h3>
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger"><?= escape($error) ?></div>
+            <?php endif; ?>
             <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <div class="mb-3">
                     <label for="nama_produk" class="form-label">Nama Produk</label>
-                    <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="<?= $data['nama_produk'] ?>" required>
+                    <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="<?= escape($data['nama_produk']) ?>" required>
                 </div>
                 <div class="mb-3">
                     <label for="id_kategori" class="form-label">Kategori</label>
                     <select name="id_kategori" id="id_kategori" class="form-select" required>
                         <?php while ($k = $kategori->fetch_assoc()): ?>
-                            <option value="<?= $k['id_kategori'] ?>" <?= ($k['id_kategori'] == $data['id_kategori']) ? 'selected' : '' ?>>
-                                <?= $k['nama_kategori'] ?>
+                            <option value="<?= (int)$k['id_kategori'] ?>" <?= ($k['id_kategori'] == $data['id_kategori']) ? 'selected' : '' ?>>
+                                <?= escape($k['nama_kategori']) ?>
                             </option>
                         <?php endwhile; ?>
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="harga" class="form-label">Harga</label>
-                    <input type="number" name="harga" id="harga" class="form-control" value="<?= $data['harga'] ?>" required>
+                    <input type="number" name="harga" id="harga" min="0" class="form-control" value="<?= (int)$data['harga'] ?>" required>
                 </div>
                 <div class="mb-3">
                     <label for="stok" class="form-label">Stok</label>
-                    <input type="number" name="stok" id="stok" class="form-control" value="<?= $data['stok'] ?>" required>
+                    <input type="number" name="stok" id="stok" min="0" class="form-control" value="<?= (int)$data['stok'] ?>" required>
                 </div>
                 <div class="mb-3">
                     <label for="deskripsi" class="form-label">Deskripsi</label>
-                    <textarea name="deskripsi" id="deskripsi" rows="3" class="form-control"><?= $data['deskripsi'] ?></textarea>
+                    <textarea name="deskripsi" id="deskripsi" rows="3" class="form-control"><?= escape($data['deskripsi'] ?? '') ?></textarea>
                 </div>
                 <div class="mb-3">
                     <label for="gambar" class="form-label">Gambar (kosongkan jika tidak ingin mengganti)</label>
-                    <input type="file" name="gambar" id="gambar" class="form-control" accept="image/*">
-                    <small class="text-muted">Saat ini: <?= $data['gambar'] ?></small>
+                    <input type="file" name="gambar" id="gambar" class="form-control" accept="image/jpeg,image/png,image/webp">
+                    <small class="text-muted">Saat ini: <?= escape($data['gambar']) ?></small>
                 </div>
                 <button type="submit" class="btn btn-warning w-100">Update</button>
                 <a href="admin_produk.php" class="btn btn-secondary w-100 mt-2">Batal</a>

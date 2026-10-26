@@ -7,7 +7,6 @@ if (!isset($_SESSION['id_user'])) {
 require_once 'koneksi.php';
 require_once 'functions.php';
 
-// Ambil semua produk beserta kategori
 $sql = "SELECT p.*, k.nama_kategori FROM produk p 
         LEFT JOIN kategori k ON p.id_kategori = k.id_kategori 
         ORDER BY p.id_produk DESC";
@@ -68,7 +67,6 @@ $produk = $conn->query($sql);
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-roblox">
         <div class="container">
             <a class="navbar-brand" href="index.php">🎮 Roblox Store</a>
@@ -92,24 +90,29 @@ $produk = $conn->query($sql);
             <?php while ($row = $produk->fetch_assoc()): 
                 $rata = rata_bintang($conn, $row['id_produk']);
                 $terjual = total_terjual($conn, $row['id_produk']);
-                $gambar = (!empty($row['gambar']) && file_exists("uploads/produk/".$row['gambar'])) 
-                          ? "uploads/produk/".$row['gambar'] 
+                $raw_gambar = basename($row['gambar'] ?? '');
+                $gambar = (!empty($raw_gambar) && file_exists("uploads/produk/" . $raw_gambar)) 
+                          ? "uploads/produk/" . $raw_gambar 
                           : "assets/img/roblox_logo.png";
             ?>
                 <div class="col-md-4 col-lg-3">
                     <div class="card card-produk">
-                        <img src="<?= $gambar ?>" class="card-img-top" alt="<?= $row['nama_produk'] ?>">
+                        <img src="<?= htmlspecialchars($gambar, ENT_QUOTES, 'UTF-8') ?>" class="card-img-top" alt="<?= htmlspecialchars($row['nama_produk'], ENT_QUOTES, 'UTF-8') ?>">
                         <div class="card-body">
-                            <h5 class="card-title fw-bold"><?= $row['nama_produk'] ?></h5>
-                            <p class="card-text text-muted small"><?= $row['nama_kategori'] ?></p>
+                            <h5 class="card-title fw-bold"><?= htmlspecialchars($row['nama_produk'], ENT_QUOTES, 'UTF-8') ?></h5>
+                            <p class="card-text text-muted small"><?= htmlspecialchars($row['nama_kategori'] ?? '', ENT_QUOTES, 'UTF-8') ?></p>
                             <p class="harga">Rp <?= number_format($row['harga'], 0, ',', '.') ?></p>
                             <p class="mb-2">
-                                <span class="badge badge-stok">Stok <?= $row['stok'] ?></span>
+                                <span class="badge badge-stok">Stok <?= (int)$row['stok'] ?></span>
                                 <span class="badge bg-info text-dark">⭐ <?= $rata ?> (<?= $terjual ?> terjual)</span>
                             </p>
                             <div class="d-flex gap-2">
-                                <a href="proses_beli.php?id=<?= $row['id_produk'] ?>" class="btn btn-beli btn-sm flex-fill">Beli Langsung</a>
-                                <a href="keranjang.php?tambah=<?= $row['id_produk'] ?>" class="btn btn-keranjang btn-sm flex-fill">+ Keranjang</a>
+                                <form action="proses_beli.php" method="POST" class="flex-fill m-0">
+                                    <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
+                                    <input type="hidden" name="id" value="<?= (int)$row['id_produk'] ?>">
+                                    <button type="submit" class="btn btn-beli btn-sm w-100">Beli Langsung</button>
+                                </form>
+                                <a href="keranjang.php?tambah=<?= (int)$row['id_produk'] ?>" class="btn btn-keranjang btn-sm flex-fill d-flex align-items-center justify-content-center">+ Keranjang</a>
                             </div>
                         </div>
                     </div>

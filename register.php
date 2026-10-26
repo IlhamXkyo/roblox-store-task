@@ -1,4 +1,7 @@
-<?php session_start(); ?>
+<?php 
+session_start(); 
+require_once 'functions.php';
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -46,10 +49,11 @@
             <p class="text-center text-muted">Bergabunglah sebagai pembeli</p>
 
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+                <div class="alert alert-danger"><?= escape($_SESSION['error']); unset($_SESSION['error']); ?></div>
             <?php endif; ?>
 
             <form action="proses_register.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <div class="mb-3">
                     <label for="username" class="form-label">Username</label>
                     <input type="text" class="form-control" id="username" name="username" required>

@@ -4,10 +4,9 @@ require_once 'koneksi.php';
 require_once 'functions.php';
 cek_admin();
  
-// Statistik
-$total_user = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='buyer'")->fetch_assoc()['total'];
-$total_produk = $conn->query("SELECT COUNT(*) as total FROM produk")->fetch_assoc()['total'];
-$total_pesanan = $conn->query("SELECT COUNT(*) as total FROM pesanan")->fetch_assoc()['total'];
+$total_user = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='buyer'")->fetch_assoc()['total'] ?? 0;
+$total_produk = $conn->query("SELECT COUNT(*) as total FROM produk")->fetch_assoc()['total'] ?? 0;
+$total_pesanan = $conn->query("SELECT COUNT(*) as total FROM pesanan")->fetch_assoc()['total'] ?? 0;
 $total_penjualan = $conn->query("SELECT SUM(total_harga) as total FROM pesanan WHERE status='selesai'")->fetch_assoc()['total'] ?? 0;
 ?>
 <!DOCTYPE html>
@@ -32,7 +31,6 @@ $total_penjualan = $conn->query("SELECT SUM(total_harga) as total FROM pesanan W
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
             <div class="col-md-2 sidebar">
                 <h4 class="text-white text-center mb-4">🎮 Admin</h4>
                 <a href="admin_dashboard.php" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a>
@@ -43,37 +41,36 @@ $total_penjualan = $conn->query("SELECT SUM(total_harga) as total FROM pesanan W
                 <a href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
             </div>
 
-            <!-- Content -->
             <div class="col-md-10 p-4">
                 <h2 class="fw-bold">📊 Dashboard</h2>
                 <div class="row mt-4">
                     <div class="col-md-3 mb-3">
                         <div class="card-dashboard text-center">
                             <h5>Total User</h5>
-                            <div class="stat-number"><?= $total_user ?></div>
+                            <div class="stat-number"><?= (int)$total_user ?></div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <div class="card-dashboard text-center">
                             <h5>Total Produk</h5>
-                            <div class="stat-number"><?= $total_produk ?></div>
+                            <div class="stat-number"><?= (int)$total_produk ?></div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <div class="card-dashboard text-center">
                             <h5>Total Pesanan</h5>
-                            <div class="stat-number"><?= $total_pesanan ?></div>
+                            <div class="stat-number"><?= (int)$total_pesanan ?></div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
                         <div class="card-dashboard text-center">
                             <h5>Penjualan (Rp)</h5>
-                            <div class="stat-number"><?= number_format($total_penjualan,0,',','.') ?></div>
+                            <div class="stat-number"><?= number_format((float)$total_penjualan,0,',','.') ?></div>
                         </div>
                     </div>
                 </div>
                 <div class="mt-4">
-                    <p class="text-muted">Selamat datang, Admin <?= $_SESSION['nama_lengkap'] ?>!</p>
+                    <p class="text-muted">Selamat datang, Admin <?= htmlspecialchars($_SESSION['nama_lengkap'] ?? '', ENT_QUOTES, 'UTF-8') ?>!</p>
                 </div>
             </div>
         </div>

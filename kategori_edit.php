@@ -4,14 +4,28 @@ require_once 'koneksi.php';
 require_once 'functions.php';
 cek_admin();
 
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$data = $conn->query("SELECT * FROM kategori WHERE id_kategori = $id")->fetch_assoc();
-if (!$data) { header("Location: admin_kategori.php"); exit; }
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$stmt_get = $conn->prepare("SELECT id_kategori, nama_kategori FROM kategori WHERE id_kategori = ?");
+$stmt_get->bind_param("i", $id);
+$stmt_get->execute();
+$data = $stmt_get->get_result()->fetch_assoc();
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nama = trim($_POST['nama_kategori']);
-    if (!empty($nama)) {
-        $conn->query("UPDATE kategori SET nama_kategori = '$nama' WHERE id_kategori = $id");
+if (!$data) {
+    header("Location: admin_kategori.php");
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($token)) {
+        die("Validasi token CSRF gagal.");
+    }
+
+    $nama = trim($_POST['nama_kategori'] ?? '');
+    if ($nama !== '') {
+        $stmt_update = $conn->prepare("UPDATE kategori SET nama_kategori = ? WHERE id_kategori = ?");
+        $stmt_update->bind_param("si", $nama, $id);
+        $stmt_update->execute();
         header("Location: admin_kategori.php");
         exit;
     }
@@ -35,9 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="card-form">
             <h3 class="fw-bold text-center">Edit Kategori</h3>
             <form method="POST">
+                <input type="hidden" name="csrf_token" value="<?= generate_csrf_token() ?>">
                 <div class="mb-3">
                     <label for="nama_kategori" class="form-label">Nama Kategori</label>
-                    <input type="text" name="nama_kategori" id="nama_kategori" class="form-control" value="<?= $data['nama_kategori'] ?>" required>
+                    <input type="text" name="nama_kategori" id="nama_kategori" class="form-control" value="<?= escape($data['nama_kategori']) ?>" required>
                 </div>
                 <button type="submit" class="btn btn-warning w-100">Update</button>
                 <a href="admin_kategori.php" class="btn btn-secondary w-100 mt-2">Batal</a>
